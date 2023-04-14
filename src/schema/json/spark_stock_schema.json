@@ -1,0 +1,63 @@
+{
+    "type": "struct",
+    "fields": [
+        {
+            "name": "key",
+            "type": "string",
+            "nullable": false,
+            "metadata": {}
+        },
+        {
+            "name": "payload",
+            "type": {
+                "type": "struct",
+                "fields": [
+                    {
+                        "name": "Id",
+                        "type": "integer",
+                        "nullable": false,
+                        "metadata": {}
+                    },
+                    {
+                        "name": "Symbol",
+                        "type": "string",
+                        "nullable": false,
+                        "metadata": {}
+                    },
+                    {
+                        "name": "Price",
+                        "type": "float",
+                        "nullable": false,
+                        "metadata": {}
+                    },
+                    {
+                        "name": "Timestamp",
+                        "type": "timestamp",
+                        "nullable": false,
+                        "metadata": {}
+                    },
+                    {
+                        "name": "Vol",
+                        "type": "integer",
+                        "nullable": false,
+                        "metadata": {}
+                    }
+                ]
+            },
+            "nullable": false,
+            "metadata": {}
+        },
+        {
+            "name": "created_at",
+            "type": "integer",
+            "nullable": false,
+            "metadata": {}
+        },
+        {
+            "name": "version",
+            "type": "integer",
+            "nullable": false,
+            "metadata": {}
+        }
+    ]
+}

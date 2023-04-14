@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "compress",
+  "namespace": "kafkastream",
+  "fields": [
+    {"name": "symbol", "type": "string"},
+    {"name": "min_price", "type": "int"},
+    {"name": "max_price", "type": "int"}
+  ]
+}

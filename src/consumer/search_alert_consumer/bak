@@ -1,0 +1,82 @@
+
+# class Handler(OutboxHandlerImpl, DeserializeAbleImpl):
+#     def __init__(self, deserialize_config:dict, rule_manager:RuleManager, db:Session) -> None:
+#         self.deserialize_config = deserialize_config
+#         self._rule_manager = rule_manager
+#         self._db = db
+
+#     @property
+#     def db(self):
+#         return self._db
+    
+#     @property
+#     def rule_manager(self):
+#         return self._rule_manager
+
+#     @DeserializeDecorator(deserizlier=deserializer.StockAggreateDeserializer)
+#     async def __call__(self, msg:StockAggreate) -> Generator[OutBoxEvent, None, None]:
+        
+#         logger.debug(f"Receive data: {msg.__dict__}")
+
+#         try:
+#             resp = await self.rule_manager.search_by_aggreate_result([msg])
+#         except Exception as e:
+#             raise RetrableEventException(e)
+            
+#         msg_count = 0
+#         events = []
+#         ids = ""
+
+#         for item in resp:
+#             model = OESearchAlertModel(data=json_serialize(item, None), id=item['_id'], version="1")
+#             OESeachAlertService.upsert(self.db, model)
+            
+#             events.append(item)
+#             ids += item['_id']
+
+#             msg_count += 1
+#             if msg_count%5 == 0:
+#                 msg = Event(payload=events, key=sha256_hex_hash(ids))
+#                 yield OutBoxEvent(commit=True, event=msg)
+#                 events = []
+#                 ids = ""
+
+#         if events:
+#             msg = Event(payload=events, key=sha256_hex_hash(ids))
+#             yield OutBoxEvent(commit=True, event=msg)
+#             events = []
+#             ids = ""
+
+# async def app2():
+#     with get_db() as db:
+#         setting = get_settings()
+
+#         schema_str = load_msg_schema(setting.deserializer_schema)
+
+#         consumer_conf = {
+#                 'bootstrap.servers': setting.broker_uri,
+#                 'group.id': setting.consumer_group_id,
+#                 'auto.offset.reset': 'earliest',
+#                 'enable.auto.commit': False,
+#                 'enable.partition.eof': True,
+#         }
+
+#         producer_conf = {
+#                 'bootstrap.servers': setting.broker_uri,
+#                 'transactional.id': setting.producer_transaction_id,
+#                 'enable.idempotence': True,
+#                 'value.serializer': json_serialize
+#         }
+
+#         rule_manager = RuleManager(setting.es_host, setting.es_index_alert)
+        
+#         handler = Handler(deserialize_config={"schema_str":schema_str}, rule_manager=rule_manager, db=db)
+
+#         consumer = OutboundConsumer(handler=handler, producer=SerializingProducer(producer_conf), consumer=Consumer(consumer_conf), db=db)
+
+#         await consumer(
+#             inbound_topic=setting.inbound_topic, 
+#             outbound_topic=setting.outbound_topic, 
+#             inbound_partition=setting.inbound_partition,  
+#             outbound_partition=setting.outbound_partition
+#             )
