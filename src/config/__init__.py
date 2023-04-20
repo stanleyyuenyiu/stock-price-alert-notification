@@ -10,7 +10,6 @@ from pydantic import (
 )
 from functools import lru_cache
 from typing import Optional
-import os
 
 
 class DbConfig(BaseModel):

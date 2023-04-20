@@ -78,7 +78,7 @@ class SearchAlertConsumer(ConsumerListenerImp):
                 )
             )
       
-        data = await self._rule_service.find_all(search)
+        data = await self._rule_service.search(search)
         logger.debug(f"return {len(data)} rule data")
         return data
 

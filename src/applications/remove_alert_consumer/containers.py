@@ -14,7 +14,14 @@ import sys
 
 class ApplicationContainer(containers.DeclarativeContainer):
     config = providers.Configuration(pydantic_settings=[get_settings(configuration_file="alert_remove")])
-   
+    
+    wiring_config = containers.WiringConfiguration(
+        packages=[
+            "lib.database",
+            "lib.kafka"
+        ]
+    )
+
     logging_config = providers.Resource(
         logging.basicConfig,
         level=logging.DEBUG,

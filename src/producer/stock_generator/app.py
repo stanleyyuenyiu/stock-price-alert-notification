@@ -12,9 +12,9 @@ from lib.utils.serializer import json_serialize
 from lib.utils.queue import load_msg_schema
 from lib.utils.hashing import object2hash, consistent_hash
 
-from models.event import Event
+from lib.kafka.models import Event
 
-from broker.broker import Producer
+from lib.kafka.services import KafkaProducer
 
 class StreamEvent(ABC):
      def __init__(self) -> None:
@@ -41,7 +41,7 @@ class StockEventMock():
         return event
 
 class StockGenerator():
-    def __init__(self, producer:Producer, outbound_topic, outbound_partition_range, message_cnt) -> None:
+    def __init__(self, producer:KafkaProducer, outbound_topic, outbound_partition_range, message_cnt) -> None:
         super().__init__()
         self._outbound_partition_range = outbound_partition_range
         self._outbound_topic = outbound_topic
@@ -63,7 +63,7 @@ class StockGenerator():
             
             event = mockEvent.generate(i)
 
-            key = object2hash(event)
+            key = object2hash(event.__dict__)
 
             msg = Event(key=key, payload=event.__dict__)
 

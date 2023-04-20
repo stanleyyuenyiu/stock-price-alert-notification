@@ -1,17 +1,14 @@
 import aiorun
 import argparse
 
-
-
 async def main(args):
     print(args.consumer)
     if args.consumer == "consumer_search_alert":
-        from consumer.search_alert_consumer import app as search_alert
-        await search_alert.App()
+        from applications.search_alert_consumer.main import app as search_consumer
+        await search_consumer()
     elif args.consumer == "consumer_remove_alert":
-        from consumer.remove_alert_consumer import app as remove_alert
-        await remove_alert.App()
-        pass
+        from applications.remove_alert_consumer.main import app as remove_consumer
+        await remove_consumer()
     else:
         raise Exception("unknown consumer")
 

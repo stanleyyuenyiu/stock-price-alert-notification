@@ -4,7 +4,6 @@ from lib.kafka.client import KafkaClient, KafkaClientConfig
 from lib.database.client import DbClient, DbClientConfig
 from elasticsearch import AsyncElasticsearch
 
-
 from config import get_settings, Settings
 from modules.rules.containers import RulesContainer
 from modules.search_alert.containers import ApplicationContainer as SearchAlertConsumerContainer
@@ -14,7 +13,14 @@ import sys
 
 class ApplicationContainer(containers.DeclarativeContainer):
     config = providers.Configuration(pydantic_settings=[get_settings(configuration_file="alert_search")])
-   
+    
+    wiring_config = containers.WiringConfiguration(
+        packages=[
+            "lib.database",
+            "lib.kafka"
+        ]
+    )
+
     logging_config = providers.Resource(
         logging.basicConfig,
         level=logging.DEBUG,

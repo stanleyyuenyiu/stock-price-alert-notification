@@ -41,7 +41,7 @@ class RemoveAlertConsumer():
 
         rule_models = self.deserialize(value, topic)
 
-        await self._rule_service.remove_many(rule_models)
+        await self._rule_service.remove_rules(rule_models)
    
 
     @kafka_deserializer(deserizlier=deserializer.Deserializer, schema=setting.broker_config.deserializer_schema)

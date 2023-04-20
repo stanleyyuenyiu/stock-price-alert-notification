@@ -1,4 +1,3 @@
-from models.stock_aggreate import StockAggreate
 from lib.kafka.deserializer import JSONDeserializer
 from .models import StockAggreateModel
 
