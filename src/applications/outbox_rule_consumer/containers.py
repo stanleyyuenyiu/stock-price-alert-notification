@@ -5,6 +5,7 @@ from lib.database.client import DbClient, DbClientConfig
 from elasticsearch import AsyncElasticsearch
 
 from config import get_settings
+from modules.rules.consumer import RuleOutboxConsumer
 from modules.rules.containers import RulesContainer
 from modules.idempotent_event.containers import ApplicationContainer as IdempotentEventContainer
 from modules.remove_alert.containers import ApplicationContainer as RemoveAlertConsumerContainer
@@ -12,8 +13,10 @@ from modules.remove_alert.containers import ApplicationContainer as RemoveAlertC
 import logging
 import sys
 
+from modules.rules.services import RuleSearchService
+
 class ApplicationContainer(containers.DeclarativeContainer):
-    config = providers.Configuration(pydantic_settings=[get_settings(configuration_file="alert_remove")])
+    config = providers.Configuration(pydantic_settings=[get_settings(configuration_file="outbox_rule")])
     
     wiring_config = containers.WiringConfiguration(
         packages=[
@@ -56,23 +59,23 @@ class ApplicationContainer(containers.DeclarativeContainer):
         config.es_config.es_host,
     )
 
-    rule_module = providers.Container(
-        RulesContainer,
-        es_client=es_client,
-        index=config.es_config.es_index
-    )
-    
     idempotent_event_module = providers.Container(
         IdempotentEventContainer,
         db_client=db_client
     )
 
-    remove_alert_consumer_module = providers.Container(
-        RemoveAlertConsumerContainer,
-        rule_service=rule_module.rule_service,
-        db_client=db_client
+    rule_search_service = providers.Factory(
+        RuleSearchService,
+        es_client=es_client,
+        index=config.es_config.es_index
     )
 
+    consumer = providers.Factory(
+        RuleOutboxConsumer,
+        kafka_client=kafka_client,
+        rule_search_service=rule_search_service
+    )
+    
 
 
 

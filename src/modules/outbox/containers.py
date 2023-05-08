@@ -7,7 +7,8 @@ class ApplicationContainer(containers.DeclarativeContainer):
 
     outbox_search_alert_repo = providers.Singleton(
         repositories.SearchAlertRepository,
-        db_client=db_client
+        db_client=db_client,
+        session_factory= db_client.provided.session,
     )
 
     outbox_search_alert_service = providers.Singleton(

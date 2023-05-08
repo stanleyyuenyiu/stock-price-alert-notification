@@ -6,23 +6,23 @@
 # from lib.utils.queue import load_msg_schema
 # from lib.utils.hashing import sha256_hex_hash
 
-# from modules.outbox.entities import SearchAlertEntity
+# from modules.outbox.entities import Outbox
 # from modules.outbox import OutboxRepositoryImpl
 # from modules.outbox.models import Event
 
-# from lib.database.client import transaction
+# from lib.database.client import transactional
 
 
 # class SearchAlertService():
 
 #     def __init__(self,
 #         kafka_client:KafkaClient ,
-#         search_alert_repo:OutboxRepository
+#         search_alert_repo:OutboxRepositoryImpl
 #     ) -> None:
 #         self._kafka_client = kafka_client
 #         self._outbox_repo = search_alert_repo
 
-#     @transaction
+#     @transactional
 #     def publish_outbox_event(self, events:List[object], topic:str, partition:int):
 #         msg_count = 0
 #         subevents = []
@@ -31,7 +31,7 @@
 #         for i in range(len(events)):
 #             rule = events[i]
 
-#             self._outbox_repo.save(SearchAlertEntity(data=json_serialize_str(rule), id=rule['_id'], version="1", created_at=int(datetime.utcnow().timestamp())))
+#             self._outbox_repo.save(Outbox(data=json_serialize_str(rule), id=rule['_id'], version="1", created_at=int(datetime.utcnow().timestamp())))
             
 #             # subevent_id += rule['_id']
 #             # subevents.append(rule)

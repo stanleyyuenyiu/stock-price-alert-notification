@@ -21,14 +21,11 @@ setting:Settings = get_settings(configuration_file="alert_remove")
 
 class RemoveAlertConsumer():
     _rule_service:RuleService
-    _kafka_client:KafkaClient
 
     def __init__(self, 
         rule_service:RuleService,
-        kafka_client:KafkaClient
     ):
         self._rule_service = rule_service
-        self._kafka_client = kafka_client
 
     @kafka_listener(
         topic=setting.broker_config.inbound_topic, 

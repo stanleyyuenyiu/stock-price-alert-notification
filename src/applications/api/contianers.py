@@ -4,6 +4,7 @@ from lib.database.client import DbClient, DbClientConfig
 from elasticsearch import AsyncElasticsearch
 
 from config import get_settings
+from modules.outbox.repositories import OutboxRepository
 from modules.rules.containers import RulesContainer
 
 import logging
@@ -30,7 +31,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
         DbClientConfig,
         dsn=config.db_config.dsn
     )
- 
+    
     db_client = providers.Singleton(
         DbClient,
         db_config_factory,
@@ -47,5 +48,11 @@ class ApplicationContainer(containers.DeclarativeContainer):
         db_client=db_client,
         index=config.es_config.es_index
     )
+
+    # outbox_repo = providers.Factory(
+    #     OutboxRepository,
+    #     db_client=db_client,
+    #     session_factory= db_client.provided.session,
+    # )
     
 

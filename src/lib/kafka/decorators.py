@@ -7,7 +7,9 @@ from lib.utils.schema import load_schema
 
 from confluent_kafka.serialization import SerializationContext, MessageField
 
-def kafka_listener(topic:str, group_id:str, partition:int, idempotent:bool):
+from .models import IdempotentConfig
+
+def kafka_listener(topic:str, group_id:str, partition:int, idempotent:IdempotentConfig):
     def inner_decorator(f:Callable):
         @functools.wraps(f)
         async def wrapped(funcself):

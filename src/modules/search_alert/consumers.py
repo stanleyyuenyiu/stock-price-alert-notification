@@ -2,7 +2,7 @@ from typing import Tuple, List
 import logging
 
 from lib.utils.hashing import sha256_hex_hash
-from lib.database.decorators import transaction
+from lib.database.decorators import transactional
 from lib.kafka.client import KafkaClient
 from lib.kafka.decorators import kafka_listener, kafka_deserializer
 from lib.consumer import ConsumerListenerImp
@@ -82,7 +82,7 @@ class SearchAlertConsumer(ConsumerListenerImp):
         logger.debug(f"return {len(data)} rule data")
         return data
 
-    @transaction
+    @transactional
     def emit_outbox_event(self, rules:List[RuleModel]) :
         
         logger.debug(f"process oubbox event start")
@@ -94,7 +94,7 @@ class SearchAlertConsumer(ConsumerListenerImp):
             rule = rules[i]
             id = rule.rule_id
             
-            self._outbox_service.save( Event( key=id, payload=rule.dict() ) )
+            self._outbox_service.save( Event( key=id, payload=rule.dict() ))
         
             events.append(rule.dict())
             ids.append(id)

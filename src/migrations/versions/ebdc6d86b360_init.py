@@ -7,7 +7,7 @@ Create Date: 2023-04-03 15:54:37.517370
 """
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.types import TIMESTAMP, UUID
 
 # revision identifiers, used by Alembic.
 revision = 'ebdc6d86b360'
@@ -18,14 +18,18 @@ depends_on = None
 
 def upgrade() -> None:
     op.create_table(
-        'outbox_event_search_alert',
-        sa.Column('id', sa.String(200), primary_key=True),
-        sa.Column('data', sa.String(500), nullable=False),
-        sa.Column('created_at', sa.Integer(), nullable=False),
-        sa.Column('version', sa.String(200), nullable=False),
+        'outbox',
+        sa.Column('id', UUID(True), primary_key=True),
+        sa.Column('aggregatetype', sa.String(500), nullable=False),
+        sa.Column('aggregateid', sa.String(200), nullable=False),
+        sa.Column('type', sa.String(200), nullable=False),
+        sa.Column('payload', sa.String(4096), nullable=False),
+        sa.Column("timestamp", sa.Integer(), nullable=False),
+        sa.Column('version', sa.String(10), nullable=False),
+    
     )
     
 
 def downgrade() -> None:
-    op.drop_table('outbox_event_search_alert')
+    op.drop_table('outbox')
 

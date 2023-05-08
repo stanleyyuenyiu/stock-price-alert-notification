@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DuplicateColumnError, IntegrityError
 from psycopg2.errors import UniqueViolation
 from lib.utils.serializer import json_serialize_str
-from lib.database.decorators import transaction
+from lib.database.decorators import transactional
 from . import entities,  models, repositories
 from exceptions.duplicate_event import DuplicateEventException
 import logging
@@ -17,6 +17,7 @@ class IdempotentEventService():
     def __init__(self, repo:repositories.IdempotentEventRepository) -> None:
         self._repo = repo
 
+    @transactional
     def save_and_flush(self, event_id:str):
         try:
             entity = entities.IdempotentEventEntity(event_id=event_id)

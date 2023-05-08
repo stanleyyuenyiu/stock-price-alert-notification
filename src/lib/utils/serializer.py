@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+import pickle
 
 def json_serialize_str( msg ):
     return json.dumps(msg)

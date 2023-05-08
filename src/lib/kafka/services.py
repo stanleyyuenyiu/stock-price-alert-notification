@@ -8,11 +8,11 @@ from confluent_kafka import KafkaError, TopicPartition, KafkaException
 from confluent_kafka.serialization import SerializationError
 
 from modules.idempotent_event.services import IdempotentEventService
-from lib.database.decorators import transaction
+from lib.database.decorators import transactional
 from exceptions.duplicate_event import DuplicateEventException
 from exceptions.retrable_event import RetrableEventException
 from exceptions.abort_event import  AbortEventException
-
+from .models import IdempotentConfig
 from lib.utils.signal import LifeSpanMgr
 import logging
 
@@ -60,7 +60,7 @@ class KafkaConsumer():
         topic:str, 
         group_id:str, 
         partition:int = -1, 
-        idempotent:bool = True,
+        idempotent:IdempotentConfig = True,
         kafka_client:KafkaClient = Provide["kafka_client"],
         idempotent_service:IdempotentEventService = Provide["idempotent_event_module.idempotent_event_service"],
     ):
@@ -71,6 +71,7 @@ class KafkaConsumer():
         self._producer, self._consumer = kafka_client.producer, kafka_client.consumer
         self._idempotent_service:IdempotentEventService = idempotent_service
         self._idempotent = idempotent
+       
 
     @property
     def topic(self):
@@ -92,18 +93,12 @@ class KafkaConsumer():
     def producer(self) -> ProducerImpl:
         return self._producer
     
-    def begin_transaction(self):
-        try:
-            self._producer.init_transactions()
-        except Exception as e:
-            raise AbortEventException(e)
-
     def commit(self):
         try:
             position = self._consumer.position(self._consumer.assignment())
             metadata = self._consumer.consumer_group_metadata()
             logger.debug(f"commiting offset - {position}")
-            #self._producer.send_offsets_to_transaction(position,metadata)
+            self._producer.send_offsets_to_transaction(position,metadata)
             self._producer.commit_transaction()
             self._producer.begin_transaction()
         except KafkaException as e:
@@ -118,6 +113,7 @@ class KafkaConsumer():
             raise AbortEventException(e)
 
     def prepare_consume(self, topic: str, partition:Optional[int] = -1):
+        
         if partition < 0:
             logger.debug(f"listen to topic {topic}")
             self._consumer.subscribe([topic])
@@ -133,10 +129,10 @@ class KafkaConsumer():
 
     def is_eof(self, msg):
         return msg.error().code() == KafkaError._PARTITION_EOF
-
+    
     async def __call__(self, handler:Callable, handler_instance:object) -> None:
         try:
-            self.begin_transaction()
+            self._producer.init_transactions()
             self._producer.begin_transaction()
             self.prepare_consume(self.topic, self.partition)
             
@@ -147,10 +143,23 @@ class KafkaConsumer():
                     
                     if message:
                         if not message.error():
-                            if self._idempotent and message.key():
+                            _headers = {}
+                            try:
+                                for key, v in message.headers():
+                                    if key and v:
+                                        _headers[key] = v.decode("utf-8")
+                            except Exception as e:
+                                raise
+
+                            if self._idempotent.enable:
+
+                                # for key in self._idempotent.id_placement.split("."):
+                                    
                                 self.deduplicate(message.key().decode('utf-8'), self._kafka_client.consumer_config['group.id'])
-                                
-                            await handler(handler_instance, message.headers(), message.key(), message.value(), message.topic(), message.partition())
+
+                            
+                            
+                            await handler(handler_instance, _headers, message.key(), message.value(), message.topic(), message.partition())
                             
                             logger.debug("[normal] commit transaction")
 
@@ -190,7 +199,6 @@ class KafkaConsumer():
         finally:
             logger.info("shutdown")
     
-    @transaction
     def deduplicate(self, key:str, group_id:str):
         self._idempotent_service.save_and_flush(f"{group_id}-{key}")
 

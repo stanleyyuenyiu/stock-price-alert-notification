@@ -1,8 +1,8 @@
 from __future__ import annotations
 from enum import Enum
-from typing import Optional, List
+from typing import Generic, Optional, List, TypeVar, Union
 from pydantic import BaseModel, validator
-
+from pydantic.generics import GenericModel
 
 class EnumOperator(Enum):
     GTE = "gte"
@@ -30,7 +30,7 @@ class RuleModel(RuleDocModel):
     type: EnumType = EnumType.PRICE
     unit: EnumUnit = EnumUnit.NUMBER
     operator: Optional[EnumOperator] = None
-    
+
     class Config:
         orm_mode = True
 
@@ -58,6 +58,19 @@ class APIAddRequest(APIRequest):
     value: float
     current:float = 0
     symbol: str
+
+P = TypeVar("P")
+
+class Pagination(GenericModel, Generic[P]):
+    total: int = 0
+    offset: int= 0
+    size: int = 0
+    data: Optional[List[P]] = []
+
+class APIGetAllResponse(BaseModel):
+    data: Pagination[RuleModel]
+    status: bool = True
+    error: Optional[List[object]]
 
 class APIGeneralResponse(BaseModel):
     data: Optional[RuleModel]

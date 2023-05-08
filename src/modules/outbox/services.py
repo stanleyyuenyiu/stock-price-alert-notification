@@ -18,7 +18,7 @@ class SearchAlertOutboxService(OutboxServiceImpl):
 
     def save(self, model:models.Event):
         model.payload = json_serialize_str(model.payload)
-        entity = entities.SearchAlertEntity(**model.dict())
+        entity = entities.Outbox(**model.dict())
         return self._repo.save(entity)
       
     

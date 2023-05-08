@@ -9,6 +9,9 @@ async def main(args):
     elif args.consumer == "consumer_remove_alert":
         from applications.remove_alert_consumer.main import app as remove_consumer
         await remove_consumer()
+    elif args.consumer == "outbox":
+        from applications.outbox_rule_consumer.main import app as outbox_rule_consumer
+        await outbox_rule_consumer()
     else:
         raise Exception("unknown consumer")
 

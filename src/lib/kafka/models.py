@@ -1,5 +1,7 @@
+from xmlrpc.client import boolean
 from pydantic import BaseModel
 from datetime import datetime
+import dataclasses
 
 class Event(BaseModel):
     key:str
@@ -9,3 +11,8 @@ class Event(BaseModel):
 
     class Config:
         orm_mode = True
+
+@dataclasses.dataclass
+class IdempotentConfig:
+    enable:bool = False
+    id_placement:str = "key"

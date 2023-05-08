@@ -1,20 +1,45 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from dependency_injector.wiring import inject, Provide
 from fastapi.responses import JSONResponse
 from .services import RuleService, NotFoundException
-from .models import APIGeneralResponse, APIUpdateRequest, APIAddRequest, RuleModel, APIErrorResponse
+from .models import APIGeneralResponse, APIUpdateRequest, APIAddRequest, RuleModel, APIErrorResponse, APIGetAllResponse, Pagination
+from typing import Annotated
 
 router = APIRouter(
     prefix="/rules",
     tags=["rules"],
 )
 
-@router.get("/")
+@router.get("/",
+    response_model=APIGetAllResponse,
+    responses={
+            404: {"model": APIErrorResponse},
+            400: {"model": APIErrorResponse},
+            500: {"model": APIErrorResponse}
+    }
+)
 @inject
 async def all(
-    service: RuleService = Depends(Provide["rule_module.rule_service"]),
+    offset: Annotated[int , Query(gt=0)] = 0,
+    size: Annotated[int , Query(lt=10000)] = 10,
+    service: RuleService = Depends(Provide["rule_module.rule_service"])
 ):
-    return {"status": True}
+    try:
+        total, data = await service.get_rules_by_user(1, offset, size)
+
+        return APIGetAllResponse(
+            status=True,
+            data=Pagination(
+                data=data,
+                offset=offset,
+                total=total,
+                size=size
+            )
+        )
+    except NotFoundException as e:
+        return JSONResponse(status_code=404, content={ "message": "Item not found", "status": False, "data":None, "error":e.args})
+    except Exception as e:
+        return JSONResponse(status_code=400, content={ "message": "Operation error", "status": False, "data":None, "error":e.args})
 
 @router.get("/{rule_id}", 
     response_model=APIGeneralResponse,
@@ -54,6 +79,8 @@ async def add(
         return {"data": model}
     except Exception as e:
         return JSONResponse(status_code=400, content={ "message": "Operation error", "status": False, "data":None, "error":e.args})
+
+import asyncio
 
 @router.put("/{rule_id}" , 
     response_model=APIGeneralResponse,
@@ -102,3 +129,6 @@ async def delete(rule_id: str, service: RuleService = Depends(Provide["rule_modu
         return {"status": True}
     except Exception as e:
         return JSONResponse(status_code=400, content={ "message": "Operation error", "status": False, "data":None, "error":e.args})
+
+
+
