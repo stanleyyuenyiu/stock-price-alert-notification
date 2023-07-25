@@ -26,6 +26,7 @@ def upgrade() -> None:
         sa.Column('payload', sa.String(4096), nullable=False),
         sa.Column("timestamp", sa.Integer(), nullable=False),
         sa.Column('version', sa.String(10), nullable=False),
+        sa.Column('partition', sa.Integer(), nullable=False, default=0),
     
     )
     

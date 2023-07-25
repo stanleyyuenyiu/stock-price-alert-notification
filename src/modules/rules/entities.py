@@ -2,7 +2,7 @@ from venv import create
 from lib.database.entities import Base
 from sqlalchemy import Column, String, Integer, Enum,Float, Boolean,  TIMESTAMP,text
 from sqlalchemy.sql import func, expression
-from .models import EnumOperator, EnumUnit, EnumType
+from .models import EnumOperator, EnumUnit, EnumType, EnumStatus
 from sqlalchemy.types import DateTime
 from sqlalchemy.ext.compiler import compiles
 
@@ -38,6 +38,13 @@ type_type: Enum = Enum(
     validate_strings=True,
 )
 
+status_type: Enum = Enum(
+    EnumStatus,
+    name="status_type",
+    create_constraint=True,
+    metadata=Base.metadata,
+    validate_strings=True,
+)
 
 class RuleEntity(Base):
     __tablename__ = "rules"
@@ -49,7 +56,7 @@ class RuleEntity(Base):
     unit        =   Column("unit",unit_type, nullable=False, default=EnumUnit.NUMBER)
     value       =   Column(Float, nullable=False, default=0)
     current     =   Column(Float, nullable=False, default=0)
-    is_trigger  =   Column(Boolean, nullable=False, default=False)
+    status      =   Column("status",status_type, nullable=False, default=EnumStatus.NEW)
     symbol      =   Column(String, nullable=False)
     created     =   Column(DateTime(timezone=True), nullable=True, server_default=utcnow(), default=utcnow())
     updated     =   Column(DateTime(timezone=True), nullable=True)

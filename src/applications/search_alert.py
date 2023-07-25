@@ -1,19 +1,20 @@
+from lib.consumer import ConsumerListenerImp
+
 from dependency_injector import containers, providers, resources
 
 from lib.kafka.client import KafkaClient, KafkaClientConfig
 from lib.database.client import DbClient, DbClientConfig
 from elasticsearch import AsyncElasticsearch
 
-from config import get_settings
-from modules.rules.containers import RulesContainer
+from config import get_settings, Settings
+from modules.search_alert.containers import ApplicationContainer as SearchAlertConsumerContainer
 from modules.idempotent_event.containers import ApplicationContainer as IdempotentEventContainer
-from modules.remove_alert.containers import ApplicationContainer as RemoveAlertConsumerContainer
 
 import logging
 import sys
 
 class ApplicationContainer(containers.DeclarativeContainer):
-    config = providers.Configuration(pydantic_settings=[get_settings(configuration_file="alert_remove")])
+    config = providers.Configuration(pydantic_settings=[get_settings(configuration_file="alert_search")])
     
     wiring_config = containers.WiringConfiguration(
         packages=[
@@ -56,23 +57,20 @@ class ApplicationContainer(containers.DeclarativeContainer):
         config.es_config.es_host,
     )
 
-    rule_module = providers.Container(
-        RulesContainer,
-        es_client=es_client,
-        index=config.es_config.es_index
-    )
-    
     idempotent_event_module = providers.Container(
         IdempotentEventContainer,
         db_client=db_client
     )
 
-    remove_alert_consumer_module = providers.Container(
-        RemoveAlertConsumerContainer,
-        rule_service=rule_module.rule_service,
-        db_client=db_client
+    search_alert_consumer_module = providers.Container(
+        SearchAlertConsumerContainer,
+        kafka_client=kafka_client,
+        db_client=db_client,
+        es_client=es_client
     )
 
+def create_app() -> ConsumerListenerImp:
+    container = ApplicationContainer()
+    return container.search_alert_consumer_module.consumer()
 
-
-
+app = create_app()

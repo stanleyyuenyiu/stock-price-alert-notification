@@ -27,3 +27,8 @@ class DeleteEvent(AddEvent):
     @property
     def type(self):
         return "delete";
+
+class TriggeEvent(AddEvent):
+    @property
+    def type(self):
+        return "trigger";

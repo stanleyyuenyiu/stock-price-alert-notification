@@ -1,7 +1,7 @@
 from lib.database.client import DbClient
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DuplicateColumnError, IntegrityError
-from psycopg2.errors import UniqueViolation
+# from psycopg2.errors import UniqueViolation
 from lib.utils.serializer import json_serialize_str
 from lib.database.decorators import transactional
 from . import entities,  models, repositories
@@ -18,15 +18,15 @@ class IdempotentEventService():
         self._repo = repo
 
     @transactional
-    def save_and_flush(self, event_id:str):
+    def save_and_flush(self, event_id:str, group_id:str):
         try:
-            entity = entities.IdempotentEventEntity(event_id=event_id)
+            entity = entities.IdempotentEventEntity(event_id=event_id,group_id=group_id)
             return self._repo.save(entity)
-        except UniqueViolation as e:
+        except Exception as e:
             raise DuplicateEventException(event_id=event_id, inner_exception=e);
-        except IntegrityError as e:
-            if type(e.orig) is UniqueViolation:
-                raise DuplicateEventException(event_id=event_id, inner_exception=e);
+        # except IntegrityError as e:
+        #     if type(e.orig) is UniqueViolation:
+        #         raise DuplicateEventException(event_id=event_id, inner_exception=e);
         
         
         

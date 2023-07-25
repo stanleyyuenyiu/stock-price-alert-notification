@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import DuplicateColumnError, IntegrityError
 from sqlalchemy.sql.functions import count
 
-from modules.rules.models import RuleModel
+from modules.rules.models import EnumStatus, RuleModel
 from .entities import RuleEntity
 from contextlib import AbstractContextManager
 from lib.database import Repo
@@ -37,7 +37,7 @@ class RulesRepository(Repo):
             stmt = (
                 update(RuleEntity).
                 where(RuleEntity.rule_id == model.rule_id).
-                where(RuleEntity.is_trigger == False).
+                where(RuleEntity.status == EnumStatus.NEW).
                 values(
                     alert_id=model.alert_id,
                     type=model.type,
@@ -50,28 +50,17 @@ class RulesRepository(Repo):
             return result.rowcount > 0
 
     @db_session
-    def inactive(self, model:RuleModel, session:Session = None) -> bool:
-        stmt = (
-            update(RuleEntity).
-            where(RuleEntity.rule_id == model.rule_id).
-            values(
-                is_trigger=True
+    def trigger(self, model:RuleModel, session:Session = None) -> bool:
+            stmt = (
+                update(RuleEntity).
+                where(RuleEntity.rule_id == model.rule_id).
+                where(RuleEntity.status == EnumStatus.NEW).
+                values(
+                    status=EnumStatus.PROCESSING,
+                )
             )
-        )
-        result = session.execute(stmt)
-        return result.rowcount > 0
-    
-    @db_session
-    def inactive_many(self, ids:List[str], session:Session = None) -> bool:
-        stmt = (
-            update(RuleEntity).
-            where(RuleEntity.rule_id.in_(ids)).
-            values(
-                is_trigger=True
-            )
-        )
-        result = session.connection().execute(stmt)
-        return result.rowcount == len(ids)
+            result = session.execute(stmt)
+            return result.rowcount > 0
 
     @db_session
     def get(self, id:str, session:Session = None) -> RuleEntity:
@@ -90,13 +79,20 @@ class RulesRepository(Repo):
         return result.rowcount > 0
     
     @db_session
-    def find_all_by_user(self, user_id, offset, size, session:Session = None) -> Sequence[RuleEntity]:
+    def find_all_by_ids(self, rule_ids:List[str], offset:int, size:int, session:Session = None) -> Sequence[RuleEntity]:
+        stmt =  select(RuleEntity).where(RuleEntity.rule_id.in_(rule_ids)).offset(offset).limit(size)
+        print(stmt)
+        result = session.execute(stmt)
+        return result.scalars().fetchall()
+
+    @db_session
+    def find_all_by_user(self, user_id:str, offset:int, size:int, session:Session = None) -> Sequence[RuleEntity]:
         stmt =  select(RuleEntity).where(RuleEntity.user_id == str(user_id)).offset(offset).limit(size)
         result = session.execute(stmt)
         return result.scalars().fetchall()
 
     @db_session
-    def get_total_by_user(self, user_id, session:Session = None) -> int:
+    def get_total_by_user(self, user_id:str, session:Session = None) -> int:
         stmt =  select(count("*")).where(RuleEntity.user_id == str(user_id))
         result = session.execute(stmt)
         return result.first().count

@@ -6,7 +6,7 @@ class ApplicationContainer(containers.DeclarativeContainer):
     db_client = providers.Dependency()
 
     outbox_search_alert_repo = providers.Singleton(
-        repositories.SearchAlertRepository,
+        repositories.OutboxRepository,
         db_client=db_client,
         session_factory= db_client.provided.session,
     )

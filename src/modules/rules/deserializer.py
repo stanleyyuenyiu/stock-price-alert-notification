@@ -1,5 +1,5 @@
 from lib.kafka.deserializer import JSONDeserializer
-from .models import RuleModel,EnumType, EnumUnit, EnumOperator
+from .models import RuleModel,EnumType, EnumUnit, EnumOperator,EnumStatus
 from modules.outbox.models import Event
 class Deserializer(JSONDeserializer):
     def __init__(self, schema_str):
@@ -16,7 +16,7 @@ class Deserializer(JSONDeserializer):
             payload_model = RuleModel(
                 value=payload['value'],
                 current=payload['current'],
-                is_trigger=payload['is_trigger'],
+                status=EnumStatus(payload['status']),
                 symbol=payload['symbol'],
                 alert_id=payload['alert_id'],
                 user_id=payload['user_id'],

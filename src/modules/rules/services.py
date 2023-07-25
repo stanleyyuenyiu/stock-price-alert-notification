@@ -1,4 +1,3 @@
-from operator import mod
 from typing import List
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from elasticsearch.helpers import async_bulk, BulkIndexError
@@ -39,6 +38,7 @@ class RuleSearchService():
     async def update_rule(self, rule:RuleModel):
         doc = self._build_update_doc(rule)
         return await self._es_client.update(index=self._index, id=rule.rule_id, body=doc)
+
 
     async def delete_rule(self, rule_id:str):
         return await self._es_client.delete(index=self._index, id=rule_id)
@@ -209,7 +209,8 @@ class RuleService():
         await self._update_rule(item) 
         ## on exception, retry on queue
         # await self._es.update_rule(item) 
-       
+    
+    @transactional
     async def create_rule(self, item:RuleModel) -> RuleModel:
         id:str = object2hash(item.dict())
 
@@ -217,10 +218,10 @@ class RuleService():
         
         await self._create_rule(item) 
 
-        ## on exception, retry on queue
-        ## await self._es.create_rule(item) 
+        # ## on exception, retry on queue
+        # ## await self._es.create_rule(item) 
    
-        return item
+        # return item
     
     async def delete_rule(self, id:str) -> bool:
         await self._delete_rule(id)
@@ -231,11 +232,22 @@ class RuleService():
         # except NotFoundError as e:
         #     print(e)
 
+    @transactional
+    async def trigger(self, rule_id:str):
+       print(rule_id)
+
     async def inactive_rules(self, ids:List[str]) -> bool:
         await self._inactive_rules(ids)
         
         ## on exception, retry on queue
         await self._es.delete_rules(ids)
+
+    async def find_all_by_ids(self, rule_ids:str, offset:int = 0, size:int = 10):
+        result =  self._repo.find_all_by_ids(rule_ids=rule_ids, offset=offset, size=size )
+        res = []
+        for item in result:
+            res.append(RuleModel.from_orm(item))
+        return res
 
     async def find_all_by_user(self, user_id:str, offset:int = 0, size:int = 10):
         result =  self._repo.find_all_by_user(user_id=user_id, offset=offset, size=size )

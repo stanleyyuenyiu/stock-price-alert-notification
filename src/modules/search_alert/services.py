@@ -1,54 +1,77 @@
-# from typing import List,Any, Optional, Callable
-# from datetime import datetime
-# from lib.kafka.client import KafkaClient
+from typing import List,Any, Optional, Callable
+import logging
 
-# from lib.utils.serializer import json_serialize_str
-# from lib.utils.queue import load_msg_schema
-# from lib.utils.hashing import sha256_hex_hash
+from datetime import datetime
+from lib.kafka.client import KafkaClient
 
-# from modules.outbox.entities import Outbox
-# from modules.outbox import OutboxRepositoryImpl
-# from modules.outbox.models import Event
+from lib.utils.serializer import json_serialize_str
+from lib.utils.queue import load_msg_schema
+from lib.utils.hashing import sha256_hex_hash
 
-# from lib.database.client import transactional
+from modules.outbox.entities import Outbox
+from modules.rules.services import RuleService
+from .models import StockAggreateModel
+from lib.database.decorators import transactional
+from modules.rules.models import RuleDocModel, RuleModel
 
+FORMAT = '%(asctime)s %(message)s'
+logging.basicConfig(format=FORMAT)
+logger = logging.getLogger('alert_search')
+logger.setLevel('DEBUG')
 
-# class SearchAlertService():
+class SearchAlertService():
 
-#     def __init__(self,
-#         kafka_client:KafkaClient ,
-#         search_alert_repo:OutboxRepositoryImpl
-#     ) -> None:
-#         self._kafka_client = kafka_client
-#         self._outbox_repo = search_alert_repo
+    def __init__(self,
+        kafka_client:KafkaClient ,
+        rule_service:RuleService
+    ) -> None:
+        self._kafka_client = kafka_client
+        self._rule_service = rule_service
 
-#     @transactional
-#     def publish_outbox_event(self, events:List[object], topic:str, partition:int):
-#         msg_count = 0
-#         subevents = []
-#         subevent_id = ""
+    async def search_rule(self, item:StockAggreateModel):
+        logger.debug(f"Search rule data by: {item.__dict__}")
+        
+        search:List[RuleDocModel] = [
+            RuleDocModel(
+                value=item.max_price,
+                symbol=item.symbol
+            )
+        ]
 
-#         for i in range(len(events)):
-#             rule = events[i]
+        if item.max_price != item.min_price:
+            search.append(
+                RuleDocModel(
+                    value=item.min_price,
+                    symbol=item.symbol
+                )
+            )
+      
+        data = await self._rule_service.search(search)
+        logger.debug(f"return {len(data)} rule data")
+        return data
+ 
+    @transactional
+    def publish_event(self, rules:List[RuleModel]) :
+        
+        logger.debug(f"process oubbox event start")
 
-#             self._outbox_repo.save(Outbox(data=json_serialize_str(rule), id=rule['_id'], version="1", created_at=int(datetime.utcnow().timestamp())))
+        self._rule_service.find_all_by_ids()
+
+        events = []
+        ids = []
+
+        for i in range(len(rules)):
+            rule = rules[i]
+            id = rule.rule_id
             
-#             # subevent_id += rule['_id']
-#             # subevents.append(rule)
-#             # msg_count += 1
+            self._rule_service.trigger( Event( key=id, payload=rule.dict() ))
+        
+            events.append(rule.dict())
+            ids.append(id)
 
-#             # if msg_count%5 == 0 or i == len(events)-1:
-#             #     payload = Event(
-#             #         key=sha256_hex_hash(subevent_id),
-#             #         payload=subevents
-#             #     )
-#             #     self.publish(topic , payload.key, payload.dict(), partition)
-#             #     subevent_id = ""
-#             #     subevents = []
-
-  
-#     def publish(self, topic:str, key:str, msg:Any, partition:Optional[int] = -1, on_delivery:Optional[Callable] = None):
-#         if partition < 0:
-#             self._kafka_client.producer.produce(topic=topic, key=key, value=msg, on_delivery=on_delivery)
-#         else:
-#             self._kafka_client.producer.produce(topic=topic, key=key, value=msg, partition=partition, on_delivery=on_delivery)
+            if (i+1)%1 == 0 or i == len(rules)-1:
+                self._emit_event(events, ids)
+                ids = []
+                events = []
+                
+        logger.debug(f"process oubbox event done")

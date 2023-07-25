@@ -1,3 +1,4 @@
+from tokenize import group
 from lib.database.client import DbClient
 from sqlalchemy import insert, update, delete, select, bindparam
 from lib.database import Repo
@@ -27,15 +28,17 @@ class IdempotentEventRepository(Repo):
     @db_session
     def save(self, model:IdempotentEventModel, session:Session = None):
         insert_stmt = insert(IdempotentEventEntity).values(
-            event_id=model.event_id
+            event_id=model.event_id,
+            group_id=model.group_id
         )
         session.execute(insert_stmt)
     
     @db_session
-    def get(self, id:str, session:Session = None) -> IdempotentEventModel:
+    def get(self, event_id:str,group_id:str, session:Session = None) -> IdempotentEventModel:
         stmt = (
             select(IdempotentEventEntity).
-            where(IdempotentEventEntity.rule_id == id)
+            where(IdempotentEventEntity.rule_id == event_id).
+            where(IdempotentEventEntity.group_id == group_id)
         )
         return IdempotentEventModel.from_orm(session.execute(stmt).scalar())
         

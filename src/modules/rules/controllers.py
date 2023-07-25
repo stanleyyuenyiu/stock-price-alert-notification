@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from dependency_injector.wiring import inject, Provide
 from fastapi.responses import JSONResponse
 from .services import RuleService, NotFoundException
-from .models import APIGeneralResponse, APIUpdateRequest, APIAddRequest, RuleModel, APIErrorResponse, APIGetAllResponse, Pagination
+from .models import APIGeneralResponse, APIUpdateRequest, APIAddRequest, EnumStatus, RuleModel, APIErrorResponse, APIGetAllResponse, Pagination
 from typing import Annotated
 
 router = APIRouter(
@@ -75,12 +75,12 @@ async def add(
 ):
     try:
         model = RuleModel(**request.dict())
+
         await service.create_rule(model)
         return {"data": model}
     except Exception as e:
         return JSONResponse(status_code=400, content={ "message": "Operation error", "status": False, "data":None, "error":e.args})
 
-import asyncio
 
 @router.put("/{rule_id}" , 
     response_model=APIGeneralResponse,
@@ -98,8 +98,8 @@ async def update(
 ):
     try:
         model:RuleModel = await service.find(rule_id)
-        if model.is_trigger:
-            raise Exception(f"Rule id {rule_id} has triggered, and not able to update")
+        if model.status != EnumStatus.NEW:
+            raise Exception(f"Rule id {rule_id} is processing or triggered, and not able to update")
 
         request_dict = request.dict()
         for k,v in model:

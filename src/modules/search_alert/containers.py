@@ -1,16 +1,20 @@
 from dependency_injector import containers, providers, resources
 from modules.outbox.containers import ApplicationContainer as OutboxContainer
 from modules.idempotent_event.containers import ApplicationContainer as IdempotentEventContainer
+from modules.rules.containers import RulesContainer
+
+from config import get_settings, Settings
 
 from . import consumers,services
 
 class ApplicationContainer(containers.DeclarativeContainer):
-    
-    db_client = providers.Dependency()
+    config = providers.Configuration(pydantic_settings=[get_settings(configuration_file="alert_search")])
 
+    db_client = providers.Dependency()
+  
     kafka_client = providers.Dependency()
 
-    rule_service = providers.Dependency()
+    es_client = providers.Dependency()
 
     outbox_module = providers.Container(
         OutboxContainer,
@@ -22,12 +26,18 @@ class ApplicationContainer(containers.DeclarativeContainer):
         db_client=db_client
     )
 
+    rule_module = providers.Container(
+        RulesContainer,
+        es_client=es_client,
+        db_client=db_client,
+        kafka_client=kafka_client,
+        index=config.es_config.es_index
+    )
+
     consumer = providers.Singleton(
         consumers.SearchAlertConsumer,
         kafka_client=kafka_client,
-        rule_service=rule_service,
-        outbox_service=outbox_module.outbox_search_alert_service,
-        idempotent_service=idempotent_event_module.idempotent_event_service
+        rule_service=rule_module.rule_service
     )
 
 

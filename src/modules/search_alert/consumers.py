@@ -31,18 +31,13 @@ class SearchAlertConsumer(ConsumerListenerImp):
     _kafka_client:KafkaClient
     _rule_service:RuleService
     _outbox_service:OutboxServiceImpl
-    _idempotent_service:IdempotentEventService
 
     def __init__(self, 
         kafka_client:KafkaClient ,
         rule_service:RuleService,
-        outbox_service:OutboxServiceImpl,
-        idempotent_service:IdempotentEventService
     ):
         self._kafka_client = kafka_client
         self._rule_service = rule_service
-        self._outbox_service = outbox_service
-        self._idempotent_service = idempotent_service
 
     @kafka_listener(
         topic=setting.broker_config.inbound_topic, 
@@ -58,7 +53,7 @@ class SearchAlertConsumer(ConsumerListenerImp):
 
         rules:List[RuleModel] = await self.search_rule(deserialized_obj)
 
-        self.emit_outbox_event(rules)
+        self.emit_event(rules)
     
     async def search_rule(self, item:StockAggreateModel):
         logger.debug(f"Search rule data by: {item.__dict__}")
@@ -83,7 +78,7 @@ class SearchAlertConsumer(ConsumerListenerImp):
         return data
 
     @transactional
-    def emit_outbox_event(self, rules:List[RuleModel]) :
+    def emit_event(self, rules:List[RuleModel]) :
         
         logger.debug(f"process oubbox event start")
 
@@ -97,16 +92,17 @@ class SearchAlertConsumer(ConsumerListenerImp):
             self._outbox_service.save( Event( key=id, payload=rule.dict() ))
         
             events.append(rule.dict())
+            
             ids.append(id)
 
             if (i+1)%1 == 0 or i == len(rules)-1:
-                self.emit_event(events, ids)
+                self._emit_event(events, ids)
                 ids = []
                 events = []
                 
         logger.debug(f"process oubbox event done")
         
-    def emit_event(self, events, ids) :
+    def _emit_event(self, events, ids) :
         payload = Event(
                     key=sha256_hex_hash(''.join(ids)),
                     payload=events

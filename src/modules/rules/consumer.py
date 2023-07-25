@@ -60,18 +60,18 @@ class RuleOutboxConsumer(ConsumerListenerImp):
 
         event_type = OutboxMessageHeader.EVEMT_TYPE.value
         
-        if event_type in headers:
-            action = headers[event_type]
-            if action == EventType.ADD.value:
-                await self._rule_service.create_rule(event.payload) 
-            elif action == EventType.UPDATE.value:
-                await self._rule_service.update_rule(event.payload)
-            elif action == EventType.DEL.value:
-                try:
+        try:
+            if event_type in headers:
+                action = headers[event_type]
+                if action == EventType.ADD.value:
+                    await self._rule_service.create_rule(event.payload) 
+                elif action == EventType.UPDATE.value:
+                    await self._rule_service.update_rule(event.payload)
+                elif action == EventType.DEL.value:
                     await self._rule_service.delete_rule(event.key)
-                except Exception as e:
-                    logger.debug(e)
-                    pass
+        except Exception as e:
+            logger.debug(e)
+            pass
         
     
     @kafka_deserializer(deserizlier=Deserializer, schema=setting.broker_config.deserializer_schema)
